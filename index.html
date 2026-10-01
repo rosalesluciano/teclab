@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TECLAB · Teclado mecánico de switches azules</title>
+<meta name="description" content="TECLAB: teclado mecánico TKL con chasis de aluminio gris industrial, switches azules y luz blanca. Para quien escribe todo el día.">
+<meta name="theme-color" content="#BFC1C0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23111213'/><rect x='7' y='7' width='18' height='18' fill='none' stroke='%23ECEDEA' stroke-width='2'/><rect x='13' y='13' width='6' height='6' fill='%232457ff'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="scrollcraft.css">
+<style>
+  :root {
+    --sc-canvas: #BFC1C0; --sc-surface: #111213;
+    --sc-ink: #111213;    --sc-ink-soft: #3E4143;
+    --sc-accent: #1537C9; --sc-accent-ink: #ECEDEA;
+    --sc-font-display: "Archivo", system-ui, sans-serif;
+    --sc-font-text: "Archivo", system-ui, sans-serif;
+    --sc-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --sc-r-sm: 0; --sc-r-md: 0; --sc-r-lg: 0; --sc-r-pill: 0;
+    --sc-gutter: clamp(1.25rem, 4.2vw, 4.5rem);
+    --marco: clamp(10px, 1.1vw, 18px);
+    --switch-blue: #2457ff;
+  }
+
+  /* --------------------------------------------------- suelos por hoja --
+     Cortes secos: cada hoja trae su suelo, su tinta y su azul. Se redefine
+     `color` junto con el token, porque el color heredado ya está resuelto. */
+  .g-concrete { --sc-canvas: #BFC1C0; --sc-ink: #111213; --sc-ink-soft: #3A3D3F; --sc-accent: #1537C9; --sc-accent-ink: #ECEDEA; }
+  .g-black    { --sc-canvas: #0D0E0F; --sc-ink: #ECEDEA; --sc-ink-soft: #A5A9AC; --sc-accent: #7F9BFF; --sc-accent-ink: #0D0E0F; }
+  .g-paper    { --sc-canvas: #E7E8E4; --sc-ink: #111213; --sc-ink-soft: #45484A; --sc-accent: #1537C9; --sc-accent-ink: #ECEDEA; }
+  .g-steel    { --sc-canvas: #A4A8AA; --sc-ink: #0E0F10; --sc-ink-soft: #26292B; --sc-accent: #10299A; --sc-accent-ink: #ECEDEA; }
+  .hoja { background: var(--sc-canvas); color: var(--sc-ink); position: relative; }
+  .hoja .sc-stage { background: var(--sc-canvas); }
+
+  body { background: #0D0E0F; }
+  h1, h2, h3, p { margin: 0; }
+  .vh { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .mono { font-family: var(--sc-font-mono); font-size: var(--sc-t-xs); letter-spacing: 0.06em; text-transform: uppercase; }
+
+  /* marco de plano: borde fino y zonas de referencia */
+  .marco { position: absolute; inset: var(--marco); border: 1px solid var(--sc-ink); pointer-events: none; z-index: 30; }
+  .marco span { position: absolute; font: 500 10px/1 var(--sc-font-mono); color: var(--sc-ink); background: var(--sc-canvas); padding: 2px 4px; }
+  .marco .zx { top: -7px; transform: translateX(-50%); }
+  .marco .zy { left: -9px; transform: translateY(-50%); padding: 3px 2px; }
+  @media (max-width: 760px) { .marco .zy { display: none; } }
+
+  /* ----------------------------------------------------------- botones -- */
+  .cta {
+    display: inline-flex; align-items: center; gap: 0.9em;
+    font: 700 var(--sc-t-sm)/1 var(--sc-font-display); font-stretch: 112%;
+    text-transform: uppercase; letter-spacing: 0.06em; text-decoration: none;
+    background: var(--sc-ink); color: var(--sc-canvas);
+    padding: 1.05em 1.4em; border: 1px solid var(--sc-ink);
+    transition: background-color 140ms var(--sc-ease-out), color 140ms var(--sc-ease-out), transform 120ms var(--sc-ease-out);
+    white-space: nowrap; cursor: pointer;
+  }
+  .cta::after { content: ""; width: 0.7em; height: 0.7em; background: var(--switch-blue); flex: none; }
+  @media (hover: hover) and (pointer: fine) { .cta:hover { background: transparent; color: var(--sc-ink); } }
+  .cta:active { transform: translateY(1px); }
+  .cta:disabled { opacity: 0.5; cursor: not-allowed; }
+  :focus-visible { outline: 2px solid var(--sc-accent); outline-offset: 3px; border-radius: 0; }
+
+  /* ========================================================== CAJETÍN ==
+     La navegación es el rótulo del plano. Muestra la hoja y la escala y
+     abre el índice. No hay barra superior. */
+  .cajetin {
+    position: fixed; right: var(--marco); bottom: var(--marco); z-index: 60;
+    background: #111213; color: #ECEDEA; border: 1px solid #5B5F62;
+    font: 500 11px/1.2 var(--sc-font-mono); letter-spacing: 0.05em; text-transform: uppercase;
+    display: grid; grid-template-columns: auto auto auto;
+    transition: opacity 200ms var(--sc-ease-out), transform 200ms var(--sc-ease-out);
+  }
+  .cajetin > * { padding: 9px 12px; border-left: 1px solid #3A3D40; }
+  .cajetin > :first-child { border-left: 0; }
+  .cajetin__mark { font: 900 15px/1 var(--sc-font-display); font-stretch: 125%; letter-spacing: -0.01em; display: flex; align-items: center; }
+  .cajetin__cell small { display: block; color: #9DA1A4; font-size: 9px; margin-bottom: 3px; }
+  .cajetin__cell strong { font-weight: 600; }
+  .cajetin__btn { background: none; border: 0; border-left: 1px solid #3A3D40; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 44px; }
+  .cajetin__btn::after { content: ""; width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-top: 1.5px solid currentColor; transform: rotate(-45deg) translateY(2px); transition: transform 160ms var(--sc-ease-out); }
+  .cajetin__btn[aria-expanded="true"]::after { transform: rotate(135deg) translate(-2px, 1px); }
+  @media (hover: hover) and (pointer: fine) { .cajetin__btn:hover { background: #1E2022; } }
+  .cajetin__index { grid-column: 1 / -1; border-left: 0; border-top: 1px solid #3A3D40; padding: 0; margin: 0; list-style: none; }
+  .cajetin__index a { display: grid; grid-template-columns: 1fr auto; gap: 16px; padding: 11px 12px; color: inherit; text-decoration: none; border-top: 1px solid #26282A; min-height: 44px; align-items: center; }
+  .cajetin__index li:first-child a { border-top: 0; }
+  .cajetin__index a[aria-current="true"] { background: #ECEDEA; color: #111213; }
+  @media (hover: hover) and (pointer: fine) { .cajetin__index a:hover:not([aria-current="true"]) { background: #1E2022; } }
+  .cajetin__index span { color: inherit; opacity: 0.7; }
+  body.at-close .cajetin { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  @media (max-width: 560px) {
+    .cajetin { left: var(--marco); grid-template-columns: auto 1fr auto; }
+    .cajetin__cell--scale { display: none; }
+  }
+
+  /* ========================================================= CONJUNTO == */
+  .hero { overflow: clip; }
+  .hero__grid {
+    position: absolute; inset: -6vh -2vw; z-index: 0;
+    background-image:
+      linear-gradient(to right, color-mix(in oklab, var(--sc-ink) 10%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--sc-ink) 10%, transparent) 1px, transparent 1px),
+      linear-gradient(to right, color-mix(in oklab, var(--sc-ink) 5%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--sc-ink) 5%, transparent) 1px, transparent 1px);
+    background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+    will-change: transform;
+  }
+  .hero__word {
+    position: absolute; z-index: 1; left: 0; right: 0; top: 7vh;
+    font: 900 21.2vw/0.8 var(--sc-font-display); font-stretch: 125%;
+    letter-spacing: -0.045em; text-align: center; color: var(--sc-ink);
+    white-space: nowrap; user-select: none; will-change: transform; width: max-content; margin-inline: auto;
+    padding-right: 0.03em;
+  }
+  .hero__word.has-dust { color: transparent; }
+  .hero .hero__dust { position: absolute; z-index: 0; width: auto; height: auto; inset: auto; max-width: none; pointer-events: none; }
+  .hero canvas[data-tl-canvas], .close canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; display: block; }
+  .tl-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; transition: opacity 300ms var(--sc-ease-out); pointer-events: none; }
+  .tl-live .tl-poster { opacity: 0; }
+  .hero__lines { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; overflow: visible; }
+  .hero__lines path { stroke: var(--sc-ink); stroke-width: 1; fill: none; opacity: 0; }
+  .callout {
+    position: absolute; left: 0; top: 0; z-index: 4; opacity: 0;
+    background: var(--sc-ink); color: var(--sc-canvas);
+    padding: 8px 11px 9px; font: 600 var(--sc-t-sm)/1.25 var(--sc-font-display);
+    max-width: 15rem; will-change: transform, opacity; pointer-events: none;
+  }
+  .callout .mono { display: block; font-size: 10px; color: color-mix(in oklab, var(--sc-canvas) 78%, var(--sc-ink)); margin-bottom: 3px; }
+  .callout--blue { box-shadow: inset 4px 0 0 var(--switch-blue); padding-left: 15px; }
+  .hero__copy { position: absolute; z-index: 5; left: calc(var(--sc-gutter) + var(--marco)); bottom: calc(var(--marco) + clamp(2rem, 8vh, 5.5rem)); width: min(26vw, 30rem); }
+  .hero__copy h1 { font: 800 var(--sc-t-2xl)/0.98 var(--sc-font-display); font-stretch: 88%; letter-spacing: -0.03em; text-wrap: balance; }
+  .hero__copy p { margin-top: var(--sc-4); color: var(--sc-ink-soft); max-width: 34ch; font-size: var(--sc-t-base); line-height: 1.5; }
+  .hero__copy .cta { margin-top: var(--sc-5); }
+
+  @media (max-width: 760px) {
+    .hero__word { top: 19svh; font-size: 22.6vw; }
+    .callout--desk { display: none; }
+    .hero__copy { width: auto; right: calc(var(--sc-gutter) + var(--marco)); bottom: calc(var(--marco) + 5.4rem); }
+    .hero__copy h1 { font-size: clamp(2rem, 9vw, 2.6rem); }
+    .hero__copy p { font-size: 0.98rem; }
+    .callout { max-width: 11rem; font-size: 0.8rem; }
+  }
+
+  /* =========================================================== CHASIS == */
+  .chasis { padding-block: clamp(5rem, 11vw, 10rem) clamp(5rem, 9vw, 8rem); }
+  .chasis__grid { display: grid; grid-template-columns: repeat(12, 1fr); column-gap: clamp(1rem, 2vw, 2rem); row-gap: 0; padding-inline: calc(var(--sc-gutter) + var(--marco)); }
+  .chasis h2 {
+    grid-column: 1 / span 11;
+    font: 900 clamp(3rem, 1rem + 7.4vw, 8.4rem)/0.86 var(--sc-font-display); font-stretch: 70%;
+    letter-spacing: -0.035em; text-transform: uppercase; text-wrap: balance;
+  }
+  .chasis__lede { grid-column: 1 / span 5; margin-top: clamp(2.5rem, 5vw, 4.5rem); font-size: var(--sc-t-lg); line-height: 1.5; color: var(--sc-ink); max-width: 38ch; }
+  .spec { grid-column: 1 / span 7; margin-top: clamp(3rem, 6vw, 5.5rem); border-top: 2px solid var(--sc-ink); width: 100%; border-collapse: collapse; }
+  .spec th, .spec td { text-align: left; vertical-align: baseline; padding: 1.05rem 0; border-bottom: 1px solid color-mix(in oklab, var(--sc-ink) 28%, transparent); }
+  .spec th { width: 34%; font: 500 var(--sc-t-xs)/1.3 var(--sc-font-mono); letter-spacing: 0.07em; text-transform: uppercase; color: var(--sc-ink-soft); padding-right: 1rem; }
+  .spec td { font: 600 var(--sc-t-lg)/1.25 var(--sc-font-display); font-stretch: 94%; }
+  .spec td b { font-weight: 600; color: var(--sc-accent); }
+  .cuenta { grid-column: 9 / span 4; margin-top: clamp(3rem, 6vw, 5.5rem); align-self: end; border-top: 2px solid var(--sc-ink); }
+  .cuenta__n { font: 900 clamp(8rem, 2rem + 16vw, 19rem)/0.78 var(--sc-font-display); font-stretch: 62%; letter-spacing: -0.05em; margin-top: 1.4rem; display: block; }
+  .cuenta p { margin-top: 1.1rem; color: var(--sc-ink-soft); max-width: 26ch; }
+  @media (max-width: 860px) {
+    .chasis h2, .chasis__lede, .spec, .cuenta { grid-column: 1 / -1; }
+    .cuenta__n { font-size: 44vw; }
+  }
+
+  /* =========================================================== SWITCH == */
+  .switch { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: center; padding: calc(var(--marco) + 2rem) calc(var(--sc-gutter) + var(--marco)); gap: clamp(1rem, 4vw, 4rem); }
+  .switch__fig { position: relative; height: min(84svh, 50rem); display: flex; justify-content: center; }
+  .switch__fig svg { height: 100%; width: auto; max-width: 100%; overflow: visible; }
+  .switch__side { position: relative; align-self: stretch; }
+  .switch__copy { position: absolute; left: 0; right: 0; top: 12%; }
+  .switch__copy h2 { font: 900 var(--sc-t-3xl)/0.9 var(--sc-font-display); font-stretch: 78%; letter-spacing: -0.035em; text-transform: uppercase; }
+  .switch__copy p { margin-top: var(--sc-5); max-width: 34ch; font-size: var(--sc-t-lg); line-height: 1.45; color: var(--sc-ink-soft); }
+  .switch__data { position: absolute; left: 0; right: 0; top: 12%; }
+  .switch__data p { font: 700 var(--sc-t-xl)/1.2 var(--sc-font-display); font-stretch: 92%; max-width: 20ch; }
+  .gauge { position: absolute; left: 0; right: 0; bottom: 10%; }
+  .gauge__read { display: flex; align-items: baseline; gap: 0.5rem; }
+  .gauge__read output { font: 900 clamp(4rem, 2rem + 5vw, 7.5rem)/0.85 var(--sc-font-display); font-stretch: 66%; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .gauge__read span { font: 600 var(--sc-t-lg)/1 var(--sc-font-display); }
+  .gauge__bar { position: relative; height: 14px; margin-top: 1.2rem; border: 1px solid var(--sc-ink); }
+  .gauge__fill { position: absolute; inset: 0; background: var(--sc-ink); transform-origin: 0 50%; transform: scaleX(0); }
+  .gauge__mark { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--sc-accent); }
+  .gauge__labels { position: relative; height: 2.6rem; margin-top: 0.5rem; }
+  .gauge__labels span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+  .gauge__labels span:first-child { transform: none; }
+  .gauge__labels span:last-child { transform: translateX(-100%); }
+  .gauge__labels .is-act { color: var(--sc-accent); font-weight: 600; }
+  .clic {
+    position: absolute; right: calc(var(--sc-gutter) + var(--marco)); top: 44%; z-index: 2;
+    font: 900 clamp(5rem, 2rem + 9vw, 12rem)/0.8 var(--sc-font-display); font-stretch: 125%;
+    letter-spacing: -0.05em; color: var(--sc-accent); opacity: 0; pointer-events: none;
+    transform-origin: 100% 50%;
+  }
+  @media (max-width: 860px) {
+    .switch { grid-template-columns: 1fr; grid-template-rows: 46svh 1fr; padding-top: calc(var(--marco) + 1rem); padding-bottom: calc(var(--marco) + 4.8rem); gap: 0.5rem; height: 100svh; }
+    .switch__fig { height: 46svh; }
+    .switch__copy, .switch__data { top: 0; }
+    .switch__copy h2 { font-size: 2.6rem; }
+    .switch__copy p { font-size: 1rem; margin-top: 0.8rem; }
+    .switch__data p { font-size: 1.3rem; }
+    .gauge { bottom: 0; }
+    .gauge__read output { font-size: 4.2rem; }
+    .clic { top: 33svh; font-size: 21vw; }
+  }
+
+  /* ===================================================== DISTRIBUCIÓN == */
+  .dist { display: flex; align-items: center; }
+  .dist__rail { align-items: center; gap: clamp(3rem, 6vw, 7rem); padding-inline: calc(var(--sc-gutter) + var(--marco)) clamp(4rem, 10vw, 10rem); }
+  .dist__lead { flex: none; width: min(30rem, 78vw); }
+  .dist__lead h2 { font: 900 clamp(4.5rem, 2rem + 8vw, 10rem)/0.82 var(--sc-font-display); font-stretch: 62%; letter-spacing: -0.04em; }
+  .dist__lead p { margin-top: var(--sc-5); max-width: 32ch; font-size: var(--sc-t-lg); line-height: 1.45; color: var(--sc-ink-soft); }
+  .plano { flex: none; margin-right: 22mm; }
+  .plano svg { width: calc(var(--wmm) * 1mm); height: auto; max-width: none; overflow: visible; }
+  .plano text { font-family: var(--sc-font-mono); }
+  .dist__note { flex: none; width: min(22rem, 70vw); border-top: 2px solid var(--sc-ink); padding-top: 1rem; }
+  .dist__note p + p { margin-top: 0.8rem; }
+  .dist__note .big { font: 800 var(--sc-t-xl)/1.1 var(--sc-font-display); font-stretch: 90%; }
+  .dist__note .small { color: var(--sc-ink-soft); font-size: var(--sc-t-sm); }
+
+  /* ======================================================== SILENCIO == */
+  .silencio { height: 150vh; background: #A4A8AA; }
+  .silencio__black { position: absolute; inset: 0; background: #0D0E0F; }
+  .silencio__line { position: sticky; top: 0; height: 100svh; display: flex; align-items: flex-end; padding: 0 calc(var(--sc-gutter) + var(--marco)) calc(var(--marco) + 7rem); }
+  .silencio__line p { font: 800 var(--sc-t-2xl)/1 var(--sc-font-display); font-stretch: 84%; letter-spacing: -0.02em; color: #ECEDEA; }
+  .silencio__line p span { display: block; margin-top: 0.8rem; font: 500 var(--sc-t-sm)/1.4 var(--sc-font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: #A5A9AC; }
+  .silencio .marco { border-color: #3A3D40; }
+  .silencio .marco span { background: #0D0E0F; color: #7D8184; }
+
+  /* ======================================================= ENCENDIDO == */
+  .close { overflow: clip; }
+  .close__room {
+    position: absolute; inset: 0; z-index: 1; opacity: 0; pointer-events: none;
+    background:
+      radial-gradient(60% 42% at 50% 56%, rgba(236,237,234,0.16), transparent 70%),
+      radial-gradient(90% 60% at 50% 60%, rgba(236,237,234,0.06), transparent 80%);
+  }
+  .close canvas { touch-action: pan-y; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .close__top { position: absolute; z-index: 5; left: calc(var(--sc-gutter) + var(--marco)); top: calc(var(--marco) + clamp(2rem, 7vh, 4.5rem)); right: calc(var(--sc-gutter) + var(--marco)); display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; pointer-events: none; }
+  .close__top h2 { font: 900 var(--sc-t-3xl)/0.88 var(--sc-font-display); font-stretch: 78%; letter-spacing: -0.035em; text-transform: uppercase; }
+  .close__top p { margin-top: var(--sc-4); max-width: 34ch; color: var(--sc-ink-soft); }
+  .only-touch { display: none; }
+  @media (hover: none), (pointer: coarse) { .only-touch { display: inline; } .only-fine { display: none; } }
+  .typed { font: 700 var(--sc-t-xl)/1.1 var(--sc-font-mono); text-align: right; max-width: 22ch; word-break: break-all; color: var(--sc-ink); min-height: 1.1em; }
+  .typed::after { content: ""; display: inline-block; width: 0.55em; height: 0.95em; background: var(--switch-blue); vertical-align: -0.1em; margin-left: 0.08em; animation: caret 1s steps(1) infinite; }
+  @keyframes caret { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .typed::after { animation: none; } .clic { display: none; } }
+  .close__bottom { position: absolute; z-index: 5; left: calc(var(--sc-gutter) + var(--marco)); right: calc(var(--marco)); bottom: var(--marco); display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem; pointer-events: none; }
+  .close__bottom > * { pointer-events: auto; }
+  .ppm { padding-bottom: clamp(1.5rem, 5vh, 3rem); }
+  .ppm output { display: block; font: 900 clamp(4.5rem, 2rem + 6vw, 9rem)/0.8 var(--sc-font-display); font-stretch: 62%; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .ppm__label { display: block; margin-top: 0.7rem; color: var(--sc-ink-soft); }
+  .ppm__row { display: flex; gap: 1.2rem; align-items: center; margin-top: 1rem; flex-wrap: wrap; }
+  .state { font: 800 var(--sc-t-lg)/1 var(--sc-font-display); font-stretch: 110%; text-transform: uppercase; letter-spacing: 0.02em; color: var(--sc-ink-soft); }
+  .is-lit .state { color: var(--sc-ink); }
+  .sound { background: none; border: 1px solid color-mix(in oklab, var(--sc-ink) 40%, transparent); color: var(--sc-ink); padding: 0 12px; min-height: 40px; cursor: pointer; transition: border-color 140ms var(--sc-ease-out); }
+  @media (hover: hover) and (pointer: fine) { .sound:hover { border-color: var(--sc-ink); } }
+  .sound b { font-weight: 600; }
+
+  /* el cajetín final: la casilla de "aprobado" es el formulario */
+  .aprobado { background: #111213; color: #ECEDEA; border: 1px solid #5B5F62; width: min(27rem, 100%); font: 500 11px/1.2 var(--sc-font-mono); letter-spacing: 0.05em; text-transform: uppercase; }
+  .aprobado__row { display: grid; grid-template-columns: auto 1fr; border-bottom: 1px solid #3A3D40; }
+  .aprobado__row > * { padding: 9px 12px; }
+  .aprobado__row > * + * { border-left: 1px solid #3A3D40; }
+  .aprobado__mark { font: 900 15px/1 var(--sc-font-display); font-stretch: 125%; letter-spacing: -0.01em; display: flex; align-items: center; }
+  .aprobado small { display: block; color: #9DA1A4; font-size: 9px; margin-bottom: 3px; }
+  .aprobado__form { padding: 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .aprobado__form label { color: #B9BDBF; }
+  .aprobado__field { display: flex; gap: 0; }
+  .aprobado__field input {
+    flex: 1; min-width: 0; background: #0D0E0F; border: 1px solid #5B5F62; border-right: 0; color: #ECEDEA;
+    font: 500 15px/1 var(--sc-font-mono); text-transform: none; letter-spacing: 0; padding: 0 12px; min-height: 48px;
+  }
+  .aprobado__field input::placeholder { color: #7D8184; }
+  .aprobado__field input:focus-visible { outline-offset: -2px; }
+  .aprobado .cta { --sc-ink: #ECEDEA; --sc-canvas: #111213; min-height: 48px; }
+  .aprobado__msg { text-transform: none; letter-spacing: 0; font-size: 12.5px; line-height: 1.45; color: #B9BDBF; min-height: 1.45em; }
+  .aprobado__msg[data-kind="error"] { color: #FF9C8A; }
+  .aprobado__foot { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-top: 1px solid #3A3D40; color: #9DA1A4; font-size: 10px; }
+
+  @media (max-width: 760px) {
+    .close__top { flex-direction: column; gap: 0.6rem; top: calc(var(--marco) + 1.4rem); }
+    .close__top h2 { font-size: 2.5rem; }
+    .close__top p { font-size: 0.95rem; margin-top: 0.5rem; }
+    .typed { text-align: left; font-size: 1.1rem; }
+    .close__bottom { flex-direction: column; align-items: stretch; gap: 0.6rem; right: var(--marco); left: var(--marco); }
+    .ppm { padding: 0 calc(var(--sc-gutter)) 0; display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+    .ppm output { font-size: 3.6rem; display: inline-block; }
+    .ppm__label { margin: 0 0 0.3rem; max-width: 18ch; }
+    .ppm__row { margin-top: 0; width: 100%; }
+    .aprobado { width: 100%; }
+    .aprobado__row { display: none; }
+  }
+  @media (max-width: 760px) and (max-height: 700px) {
+    .close__top p { display: none; }
+    .ppm__label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="cajetin" aria-label="Hojas del documento">
+  <span class="cajetin__mark">TECLAB</span>
+  <span class="cajetin__cell"><small>Hoja</small><strong data-cj-name>Conjunto</strong></span>
+  <span class="cajetin__cell cajetin__cell--scale"><small>Esc</small><strong data-cj-scale>1:4</strong></span>
+  <button class="cajetin__btn" type="button" aria-expanded="false" aria-controls="cj-index">Índice</button>
+  <ol class="cajetin__index" id="cj-index" hidden></ol>
+</nav>
+
+<main>
+
+  <!-- HOJA · CONJUNTO. Respeto: el objeto en planta, quieto, y el scroll lo despieza. -->
+  <section id="conjunto" class="hoja g-concrete" data-sc-act="pin" data-sc-span="2.1" data-tl-sheet="Conjunto" data-tl-scale="1:4">
+    <div data-sc-stage class="hero">
+      <div class="hero__grid" aria-hidden="true"></div>
+      <p class="hero__word" aria-hidden="true">TECLAB</p>
+      <picture aria-hidden="true"><source media="(max-width: 760px)" srcset="assets/hero-m-poster.webp"><img class="tl-poster" src="assets/hero-poster.webp" alt=""></picture>
+      <canvas data-tl-canvas role="img" aria-label="Teclado TECLAB en 3D: chasis de aluminio gris, teclas negras y switches azules debajo de cada tecla."></canvas>
+      <svg class="hero__lines" aria-hidden="true">
+        <path data-tl-line="case"/><path data-tl-line="cap"/><path data-tl-line="switch"/><path data-tl-line="light"/>
+      </svg>
+      <div class="callout callout--desk" data-tl-anchor="cap" data-off="40,-120" data-off-m="-20,-110" aria-hidden="true"><span class="mono">Tecla</span>Negra, leyenda traslúcida</div>
+      <div class="callout callout--blue" data-tl-anchor="switch" data-off="-70,-170" data-off-m="-30,-150" aria-hidden="true"><span class="mono">Switch</span>Azul, táctil, con clic</div>
+      <div class="callout callout--desk" data-tl-anchor="light" data-off="-150,130" data-off-m="-30,120" aria-hidden="true"><span class="mono">Luz</span>Blanca, tecla por tecla</div>
+      <div class="callout" data-tl-anchor="case" data-off="30,110" data-off-m="-20,110" aria-hidden="true"><span class="mono">Chasis</span>Aluminio gris industrial</div>
+      <div class="hero__copy" data-sc-cue="0 0.6 0 0.35">
+        <h1><span class="vh">TECLAB. </span>Un teclado que no negocia.</h1>
+        <p>Chasis de aluminio gris industrial, switches azules, luz blanca. Para quien escribe todo el día.</p>
+        <a class="cta" href="#encendido">Anotarme</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOJA · CHASIS. Confianza fría: datos en tabla reglada, sin adjetivos. -->
+  <section id="chasis" class="hoja g-black chasis" data-sc-act="flow" data-tl-sheet="Chasis" data-tl-scale="1:2">
+    <div class="chasis__grid">
+      <h2 data-sc-in>Aluminio. Negro. Blanco. Nada más.</h2>
+      <p class="chasis__lede" data-sc-in>Un bloque gris que no se mueve del escritorio, teclas negras que no brillan y una luz que solo sabe ser blanca.</p>
+      <table class="spec" data-sc-in>
+        <caption class="vh">Materiales y distribución del TECLAB</caption>
+        <tbody>
+          <tr><th scope="row">Chasis</th><td>Aluminio, gris industrial</td></tr>
+          <tr><th scope="row">Placa</th><td>Negra</td></tr>
+          <tr><th scope="row">Teclas</th><td>Negras, leyenda traslúcida</td></tr>
+          <tr><th scope="row">Switches</th><td><b>Azules</b>, táctiles, con clic</td></tr>
+          <tr><th scope="row">Luz</th><td>Blanca, tecla por tecla</td></tr>
+          <tr><th scope="row">Distribución</th><td>TKL, ANSI, sin teclado numérico</td></tr>
+        </tbody>
+      </table>
+      <div class="cuenta" data-sc-in>
+        <span class="cuenta__n" aria-hidden="true">87</span>
+        <p><span class="vh">87 teclas. </span>Teclas, y un switch azul debajo de cada una.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOJA · SWITCH. Curiosidad: tu scroll aprieta el switch, en corte. -->
+  <section id="switch" class="hoja g-paper" data-sc-act="pin" data-sc-span="2.3" data-tl-sheet="Switch" data-tl-scale="5:1">
+    <div data-sc-stage class="switch">
+      <figure class="switch__fig" style="margin:0">
+        <svg viewBox="0 0 640 720" role="img" aria-labelledby="sw-t">
+          <title id="sw-t">Corte de un switch azul con su tecla: vástago azul, resorte, collar de clic y contactos.</title>
+          <defs>
+            <pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="9" stroke="#111213" stroke-width="1.1"/>
+            </pattern>
+            <pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+              <line x1="0" y1="0" x2="0" y2="6" stroke="#111213" stroke-width="0.9"/>
+            </pattern>
+          </defs>
+          <!-- placa -->
+          <rect x="40" y="470" width="560" height="33" fill="url(#hatch2)" stroke="#111213" stroke-width="1.5"/>
+          <!-- carcasa inferior -->
+          <path d="M150 503 H490 L470 622 H170 Z" fill="url(#hatch)" stroke="#111213" stroke-width="1.5"/>
+          <rect x="228" y="622" width="14" height="46" fill="#111213"/>
+          <rect x="398" y="622" width="14" height="46" fill="#111213"/>
+          <rect x="262" y="503" width="116" height="110" fill="#E7E8E4" stroke="#111213" stroke-width="1"/>
+          <!-- contactos -->
+          <path d="M404 520 V612" stroke="#111213" stroke-width="3" fill="none"/>
+          <path id="sw-leaf" d="M388 612 L388 520" stroke="#111213" stroke-width="3" fill="none"/>
+          <!-- resorte -->
+          <path id="sw-spring" d="" stroke="#111213" stroke-width="2.2" fill="none" stroke-linejoin="round"/>
+          <!-- carcasa superior -->
+          <path d="M136 470 L156 380 H484 L504 470 Z" fill="url(#hatch)" stroke="#111213" stroke-width="1.5"/>
+          <rect x="266" y="380" width="108" height="90" fill="#E7E8E4" stroke="#111213" stroke-width="1"/>
+          <!-- vástago -->
+          <g id="sw-stem">
+            <rect x="292" y="300" width="56" height="170" fill="#2457ff"/>
+            <rect x="306" y="250" width="28" height="50" fill="#2457ff"/>
+            <rect x="274" y="392" width="18" height="30" fill="#2457ff"/>
+            <rect x="348" y="392" width="18" height="30" fill="#2457ff"/>
+          </g>
+          <!-- collar de clic, a los dos lados del vástago: su salto es el clic -->
+          <g id="sw-jacket"><rect x="254" y="428" width="38" height="24" fill="#ECEDEA" stroke="#111213" stroke-width="1.5"/><rect x="348" y="428" width="38" height="24" fill="#ECEDEA" stroke="#111213" stroke-width="1.5"/></g>
+          <!-- tecla -->
+          <g id="sw-cap">
+            <path fill-rule="evenodd" fill="#111213" d="M122 300 L180 102 H460 L518 300 Z M150 300 L200 128 H440 L490 300 Z"/>
+            <rect x="296" y="128" width="48" height="122" fill="#111213"/>
+          </g>
+        </svg>
+      </figure>
+      <div class="switch__side">
+        <div class="switch__copy" data-sc-cue="0 0.4 0 0.3">
+          <h2>Azul quiere decir clic.</h2>
+          <p>Un switch táctil y audible. Lo sentís en el dedo y lo escuchás antes de llegar al fondo.</p>
+        </div>
+        <div class="switch__data" data-sc-cue="0.36 1 0.25 0.1">
+          <p>Actúa a 2,2&nbsp;mm. Recorre 4,0&nbsp;mm. Pide 60&nbsp;cN.</p>
+        </div>
+        <div class="gauge" aria-live="off">
+          <div class="gauge__read"><output data-sw-read>0,0</output><span>mm</span></div>
+          <div class="gauge__bar"><div class="gauge__fill" data-sw-fill></div><div class="gauge__mark" style="left:55%"></div></div>
+          <div class="gauge__labels mono"><span style="left:0">Reposo</span><span class="is-act" style="left:55%">Actuación 2,2</span><span style="left:100%">Fondo 4,0</span></div>
+        </div>
+      </div>
+      <p class="clic" aria-hidden="true" data-sw-clic>CLIC</p>
+    </div>
+  </section>
+
+  <!-- HOJA · DISTRIBUCIÓN. Control: el plano a escala 1:1, de lado. -->
+  <section id="distribucion" class="hoja g-steel" data-sc-act="pan" data-sc-span="2.4" data-tl-sheet="Distribución" data-tl-scale="1:1">
+    <div data-sc-stage class="dist">
+      <div class="dist__rail" data-sc-pan="0">
+        <div class="dist__lead">
+          <h2>Escala 1:1</h2>
+          <p>Las 87 teclas a su tamaño real. Sin teclado numérico, así el mouse queda donde tiene que estar.</p>
+        </div>
+        <figure class="plano" style="margin:0" data-tl-plan>
+          <figcaption class="vh">Plano en planta del TECLAB, 371,7 por 147,8 milímetros, con la fila de funciones, el bloque principal, el bloque de navegación y las flechas.</figcaption>
+        </figure>
+        <div class="dist__note">
+          <p class="big">371,7 × 147,8 mm.</p>
+          <p class="small">Medido en milímetros de pantalla (96 ppp). Según tu monitor, puede variar unos milímetros.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOJA · SILENCIO. Expectativa: vacío escrito a propósito antes del pico. -->
+  <section id="silencio" class="hoja silencio" data-sc-act="flow" data-tl-sheet="Silencio" data-tl-scale="S/E">
+    <div class="silencio__black" data-sc-reveal="down" data-sc-reveal-at="0.12 0.5"></div>
+    <div class="silencio__line">
+      <p data-sc-cue="0.52 1 0.2 0.1">Apagamos todo.<span>Lo que sigue lo manejás vos.</span></p>
+    </div>
+  </section>
+
+  <!-- HOJA · ENCENDIDO. Pico y cierre: tu teclado maneja el suyo. -->
+  <section id="encendido" class="hoja g-black" data-sc-act="pin" data-sc-span="3" data-tl-sheet="Encendido" data-tl-scale="1:4">
+    <div data-sc-stage class="close">
+      <div class="close__room" aria-hidden="true"></div>
+      <picture aria-hidden="true"><source media="(max-width: 760px)" srcset="assets/close-m-poster.webp"><img class="tl-poster" src="assets/close-poster.webp" alt=""></picture>
+      <canvas data-tl-canvas role="img" aria-label="Teclado TECLAB en 3D, apagado. Cada tecla que apretás en tu teclado, o que tocás en la pantalla, baja, hace clic y se enciende en blanco."></canvas>
+      <div class="close__top" data-sc-cue="0 1 0 0">
+        <div>
+          <h2><span class="only-fine">Escribí algo.</span><span class="only-touch">Tocá las teclas.</span></h2>
+          <p><span class="only-fine">Con tu teclado. Cada tecla que apretás suena y se enciende en el TECLAB.</span><span class="only-touch">Cada tecla que tocás baja, suena y se enciende.</span></p>
+        </div>
+        <p class="typed" data-tl-typed aria-hidden="true">&nbsp;</p>
+      </div>
+      <div class="close__bottom" data-sc-cue="0.12" data-sc-rise="0">
+        <div class="ppm">
+          <output data-tl-ppm aria-describedby="ppm-l">0</output>
+          <span class="ppm__label mono" id="ppm-l">Pulsaciones por minuto, medidas ahora</span>
+          <div class="ppm__row">
+            <span class="state" data-tl-state aria-live="polite">Apagado.</span>
+            <button class="sound mono" type="button" data-tl-sound aria-pressed="true">Sonido: <b>sí</b></button>
+          </div>
+        </div>
+        <form class="aprobado" method="post" action="#" data-endpoint="" aria-labelledby="ap-t">
+          <div class="aprobado__row"><span class="aprobado__mark">TECLAB</span><span><small>Hoja</small>Encendido · Rev A</span></div>
+          <div class="aprobado__form">
+            <label for="ap-mail" id="ap-t">Aprobado por: tu correo, para la preventa</label>
+            <div class="aprobado__field">
+              <input id="ap-mail" name="email" type="email" autocomplete="email" inputmode="email" placeholder="nombre@dominio.com" required>
+              <button class="cta" type="submit">Anotarme</button>
+            </div>
+            <p class="aprobado__msg" data-ap-msg role="status"></p>
+          </div>
+          <div class="aprobado__foot"><span>Doc TL-87</span><span>© 2026 TECLAB</span></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="scrollcraft.js"></script>
+<script>ScrollCraft.mount(document.body);</script>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+<script type="module" src="page.js"></script>
+</body>
+</html>
